@@ -373,6 +373,16 @@
   const ROLE_ID_TO_PING = "750850699964973216";
   const BOT_AVATAR_URL = "https://i.imgur.com/YOUR_IMAGE_LINK_HERE.png";
 
+  // Helper utility function to shuffle array items in place using Fisher-Yates
+  function shuffleArray(array) {
+    const copy = [...array];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
   const examStructure = [
     {
       sectionTitle: "SECTION A - MULTIPLE CHOICE (30 QUESTIONS)",
@@ -556,11 +566,13 @@
     block.className = "question-block";
 
     if (q.type === "mcq" || q.type === "tf") {
+      // Shuffle multiple choice / T-F option order for randomized rendering
+      const shuffledOptions = shuffleArray(q.options);
       block.innerHTML = `
         <div class="question-tag">${q.type === 'mcq' ? 'MULTIPLE CHOICE' : 'TRUE / FALSE'} • ${q.points} POINT</div>
         <div class="question-title">${q.prompt}</div>
         <div class="options">
-          ${q.options.map((opt) => `
+          ${shuffledOptions.map((opt) => `
             <label class="option-label">
               <input type="radio" name="${q.id}" value="${opt}" required>
               <span>${opt}</span>
@@ -569,17 +581,21 @@
         </div>
       `;
     } else if (q.type === "matching") {
+      // Shuffle the pairs display order as well as the dropdown options order
+      const shuffledPairs = shuffleArray(q.pairs);
+      const shuffledDropdownOptions = shuffleArray(q.options);
+
       block.innerHTML = `
         <div class="question-tag">MATCHING SECTION • ${q.points} POINTS TOTAL</div>
         <div class="question-title">${q.prompt}</div>
         <div id="matchingRowsContainer">
-          ${q.pairs.map((pair) => `
+          ${shuffledPairs.map((pair) => `
             <div class="matching-row">
               <div class="matching-prompt">${pair.term}</div>
               <div>
                 <select name="match_${pair.id}" class="match-select" required>
                   <option value="" disabled selected>-- Select Definition --</option>
-                  ${q.options.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                  ${shuffledDropdownOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
                 </select>
               </div>
             </div>
@@ -617,13 +633,16 @@
     qContainer.appendChild(block);
   }
 
+  // Iterate over sections and randomize question order inside each section on page load
   examStructure.forEach((sec) => {
     const secHeader = document.createElement("div");
     secHeader.className = "section-separator";
     secHeader.innerText = sec.sectionTitle;
     qContainer.appendChild(secHeader);
 
-    sec.questions.forEach(q => renderQuestion(q));
+    // Randomize the order of questions for this section
+    const randomizedQuestions = shuffleArray(sec.questions);
+    randomizedQuestions.forEach(q => renderQuestion(q));
   });
 
   document.getElementById("quizForm").addEventListener("submit", async (e) => {
